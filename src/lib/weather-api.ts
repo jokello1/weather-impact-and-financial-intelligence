@@ -223,45 +223,29 @@ export async function fetchWeatherForecast(
   return normalizeForecast(data, city)
 }
 
-interface NominatimResult {
-  lat: string
-  lon: string
-  display_name: string
-  address?: {
-    city?: string
-    town?: string
-    village?: string
-    country?: string
-  }
-}
-
 export async function geocodeLocation(query: string): Promise<GeoResult> {
   const url = new URL('/api/geocode', window.location.origin)
   url.searchParams.set('q', query)
-  url.searchParams.set('format', 'json')
-  url.searchParams.set('limit', '1')
 
   const response = await fetch(url)
+  const data = (await response.json().catch(() => null)) as
+    | GeoResult
+    | { error?: string }
+    | null
 
   if (!response.ok) {
-    throw new Error('Failed to geocode location')
+    throw new Error(data && 'error' in data && data.error ? data.error : 'Failed to geocode location')
   }
 
-  const results = (await response.json()) as NominatimResult[]
-  const result = results[0]
-
-  if (!result) {
+  if (!data || !('lat' in data) || !('lon' in data)) {
     throw new Error(`No location found for "${query}"`)
   }
 
-  const city =
-    result.address?.city ?? result.address?.town ?? result.address?.village ?? query
-
   return {
-    lat: Number(result.lat),
-    lon: Number(result.lon),
-    displayName: result.display_name,
-    city,
-    country: result.address?.country,
+    lat: Number(data.lat),
+    lon: Number(data.lon),
+    displayName: data.displayName,
+    city: data.city ?? query,
+    country: data.country,
   }
 }

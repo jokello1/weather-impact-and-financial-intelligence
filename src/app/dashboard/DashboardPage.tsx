@@ -51,6 +51,7 @@ export function DashboardPage() {
   const [geoError, setGeoError] = useState<string | null>(null)
   const [isGeocoding, setIsGeocoding] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [lastGeocodedQuery, setLastGeocodedQuery] = useState(DEFAULT_LOCATION.query)
 
   const sensitivity = SENSITIVITY_LABELS[sensitivityIndex] ?? 'balanced'
 
@@ -94,15 +95,28 @@ export function DashboardPage() {
 
   const handleAnalyze = async () => {
     setGeoError(null)
+    const trimmedQuery = locationQuery.trim()
+
+    if (!trimmedQuery) {
+      setGeoError('Enter a location to search')
+      return
+    }
+
+    if (trimmedQuery === lastGeocodedQuery) {
+      setShouldFetch(true)
+      return
+    }
+
     setIsGeocoding(true)
 
     try {
-      const geo = await geocodeLocation(locationQuery)
+      const geo = await geocodeLocation(trimmedQuery)
       setCoords({
         lat: geo.lat,
         lon: geo.lon,
         city: geo.city ?? geo.displayName,
       })
+      setLastGeocodedQuery(trimmedQuery)
       setShouldFetch(true)
     } catch (err) {
       setGeoError(err instanceof Error ? err.message : 'Failed to resolve location')

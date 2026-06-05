@@ -113,6 +113,3 @@ The Node server in `server.mjs` serves the built app and proxies weather/geocodi
 | `WEATHERAI_API_KEY` | Server-side bearer token for the Weather AI API (production) |
 | `VITE_WEATHERAI_API_KEY` | Optional fallback for the Vite dev proxy during local development |
 
-## License
-
-Private project.

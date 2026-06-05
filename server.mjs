@@ -1,6 +1,7 @@
 import express from 'express'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { geocodeQuery } from './geocode-handler.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -37,34 +38,8 @@ app.use('/api/weather-ai', async (req, res) => {
 })
 
 app.get('/api/geocode', async (req, res) => {
-  const targetUrl = new URL('https://nominatim.openstreetmap.org/search')
-
-  for (const [key, value] of Object.entries(req.query)) {
-    if (typeof value === 'string') {
-      targetUrl.searchParams.set(key, value)
-    }
-  }
-
-  if (!targetUrl.searchParams.has('format')) {
-    targetUrl.searchParams.set('format', 'json')
-  }
-
-  try {
-    const response = await fetch(targetUrl, {
-      headers: {
-        'Accept-Language': 'en',
-        'User-Agent': 'WeatherImpactIntelligence/1.0',
-      },
-    })
-
-    const body = await response.text()
-    res
-      .status(response.status)
-      .type(response.headers.get('content-type') || 'application/json')
-      .send(body)
-  } catch {
-    res.status(502).json({ error: 'Geocoding proxy failed' })
-  }
+  const { status, body } = await geocodeQuery(req.query.q ?? '')
+  res.status(status).json(body)
 })
 
 app.use(express.static(path.join(__dirname, 'dist')))
