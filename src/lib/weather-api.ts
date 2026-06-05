@@ -223,29 +223,60 @@ export async function fetchWeatherForecast(
   return normalizeForecast(data, city)
 }
 
+const GEOCODE_API = 'https://geocoding-api.open-meteo.com/v1/search'
+const geocodeCache = new Map<string, GeoResult>()
+
+interface OpenMeteoGeocodeResponse {
+  results?: Array<{
+    name: string
+    latitude: number
+    longitude: number
+    country?: string
+    admin1?: string
+  }>
+}
+
 export async function geocodeLocation(query: string): Promise<GeoResult> {
-  const url = new URL('/api/geocode', window.location.origin)
-  url.searchParams.set('q', query)
+  const trimmed = query.trim()
+  if (!trimmed) {
+    throw new Error('Enter a location to search')
+  }
+
+  const cacheKey = trimmed.toLowerCase()
+  const cached = geocodeCache.get(cacheKey)
+  if (cached) return cached
+
+  const url = new URL(GEOCODE_API)
+  url.searchParams.set('name', trimmed)
+  url.searchParams.set('count', '1')
+  url.searchParams.set('language', 'en')
+  url.searchParams.set('format', 'json')
 
   const response = await fetch(url)
-  const data = (await response.json().catch(() => null)) as
-    | GeoResult
-    | { error?: string }
-    | null
+
+  if (response.status === 429) {
+    throw new Error('Too many location searches. Please wait a moment and try again.')
+  }
 
   if (!response.ok) {
-    throw new Error(data && 'error' in data && data.error ? data.error : 'Failed to geocode location')
+    throw new Error('Failed to geocode location')
   }
 
-  if (!data || !('lat' in data) || !('lon' in data)) {
-    throw new Error(`No location found for "${query}"`)
+  const data = (await response.json()) as OpenMeteoGeocodeResponse
+  const match = data.results?.[0]
+
+  if (!match) {
+    throw new Error(`No location found for "${trimmed}"`)
   }
 
-  return {
-    lat: Number(data.lat),
-    lon: Number(data.lon),
-    displayName: data.displayName,
-    city: data.city ?? query,
-    country: data.country,
+  const result: GeoResult = {
+    lat: match.latitude,
+    lon: match.longitude,
+    displayName: [match.name, match.admin1, match.country].filter(Boolean).join(', '),
+    city: match.name,
+    country: match.country,
   }
+
+  geocodeCache.set(cacheKey, result)
+  return result
 }
