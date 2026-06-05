@@ -42,8 +42,10 @@ cp .env.example .env
 ```
 
 ```env
-VITE_WEATHERAI_API_KEY=wai_your_key_here
+WEATHERAI_API_KEY=wai_your_key_here
 ```
+
+The API key is kept on the server and proxied through `/api/weather-ai` to avoid CORS issues and exposing the key in the browser.
 
 ### Development
 
@@ -57,7 +59,14 @@ Open the URL shown in the terminal (typically `http://localhost:5173`).
 
 ```bash
 npm run build
-npm run preview
+npm start
+```
+
+For local production preview after building:
+
+```bash
+npm run build
+npm start
 ```
 
 ### Lint
@@ -87,11 +96,22 @@ src/
 3. **Recommendations** — `src/lib/recommendation-engine.ts` produces rule-based actions from forecast signals.
 4. **UI** — `DashboardPage` orchestrates location state, activity/sensitivity controls, and chart sections.
 
+## Deploying to Render
+
+Use a **Web Service** (not a static site):
+
+- **Build command:** `npm install && npm run build`
+- **Start command:** `npm start`
+- **Environment variable:** `WEATHERAI_API_KEY`
+
+The Node server in `server.mjs` serves the built app and proxies weather/geocoding API calls server-side.
+
 ## Configuration
 
 | Variable | Description |
 |----------|-------------|
-| `VITE_WEATHERAI_API_KEY` | Bearer token for the Weather AI API |
+| `WEATHERAI_API_KEY` | Server-side bearer token for the Weather AI API (production) |
+| `VITE_WEATHERAI_API_KEY` | Optional fallback for the Vite dev proxy during local development |
 
 ## License
 

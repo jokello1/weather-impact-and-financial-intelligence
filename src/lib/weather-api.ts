@@ -6,27 +6,15 @@ import type {
   WeatherForecast,
 } from '@/types/weather'
 
-const API_BASE = 'https://api.weather-ai.co/v1'
-
-function getApiKey() {
-  const key = import.meta.env.VITE_WEATHERAI_API_KEY
-  if (!key) {
-    throw new Error('Missing VITE_WEATHERAI_API_KEY in environment')
-  }
-  return key
-}
+const API_BASE = '/api/weather-ai/v1'
 
 async function weatherFetch<T>(path: string, params: Record<string, string | number | boolean>) {
-  const url = new URL(`${API_BASE}${path}`)
+  const url = new URL(`${API_BASE}${path}`, window.location.origin)
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.set(key, String(value))
   })
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${getApiKey()}`,
-    },
-  })
+  const response = await fetch(url)
 
   if (!response.ok) {
     const message = await response.text()
@@ -232,8 +220,6 @@ export async function fetchWeatherForecast(
     ai: false,
     units: 'metric',
   })
-  console.log(data)
-
   return normalizeForecast(data, city)
 }
 
@@ -250,17 +236,12 @@ interface NominatimResult {
 }
 
 export async function geocodeLocation(query: string): Promise<GeoResult> {
-  const url = new URL('https://nominatim.openstreetmap.org/search')
+  const url = new URL('/api/geocode', window.location.origin)
   url.searchParams.set('q', query)
   url.searchParams.set('format', 'json')
   url.searchParams.set('limit', '1')
 
-  const response = await fetch(url, {
-    headers: {
-      'Accept-Language': 'en',
-      'User-Agent': 'WeatherImpactIntelligence/1.0',
-    },
-  })
+  const response = await fetch(url)
 
   if (!response.ok) {
     throw new Error('Failed to geocode location')
